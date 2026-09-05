@@ -16,6 +16,7 @@ function App() {
   const [error, setError] = useState("");
   const [api, setApi] = useState(null);
   const [toast, setToast] = useState("");
+  const [copyFeedback, setCopyFeedback] = useState(null);
 
   useEffect(() => {
     if (!location.hash) history.replaceState(null, "", `${location.pathname}${DEFAULT_HASH}`);
@@ -114,11 +115,45 @@ function App() {
     };
   }, [scene]);
 
-  const copyElement = useCallback((element) => {
+  const getElementViewportRect = useCallback((element) => {
+    if (!api || !element) return null;
+    const appState = api.getAppState();
+    const canvasRect = document.querySelector(".canvas-wrap")?.getBoundingClientRect();
+    const zoom = appState?.zoom?.value || 1;
+    if (!canvasRect || !zoom) return null;
+
+    const x1 = (Math.min(element.x, element.x + (element.width || 0)) + appState.scrollX) * zoom + canvasRect.left;
+    const y1 = (Math.min(element.y, element.y + (element.height || 0)) + appState.scrollY) * zoom + canvasRect.top;
+    const x2 = (Math.max(element.x, element.x + (element.width || 0)) + appState.scrollX) * zoom + canvasRect.left;
+    const y2 = (Math.max(element.y, element.y + (element.height || 0)) + appState.scrollY) * zoom + canvasRect.top;
+
+    return {
+      left: Math.max(8, x1 - 8),
+      top: Math.max(66, y1 - 8),
+      width: Math.max(44, x2 - x1 + 16),
+      height: Math.max(32, y2 - y1 + 16),
+    };
+  }, [api]);
+
+  const copyElement = useCallback((element, point = null) => {
     const payload = getCopyPayloadForElement(element);
     if (!payload?.text) return;
     copyText(payload.text, payload.label);
-  }, [copyText, getCopyPayloadForElement]);
+
+    const rect = getElementViewportRect(element);
+    const position = point || (rect ? { x: rect.left + rect.width / 2, y: rect.top } : { x: window.innerWidth / 2, y: 100 });
+    setCopyFeedback({
+      ...payload,
+      id: element?.id,
+      type: element?.type || "object",
+      rect,
+      x: Math.min(window.innerWidth - 150, Math.max(12, position.x - 70)),
+      y: Math.min(window.innerHeight - 110, Math.max(72, position.y - 48)),
+      preview: payload.text.length > 160 ? `${payload.text.slice(0, 160)}…` : payload.text,
+    });
+    window.clearTimeout(window.__copyFeedbackTimer);
+    window.__copyFeedbackTimer = window.setTimeout(() => setCopyFeedback(null), 3500);
+  }, [copyText, getCopyPayloadForElement, getElementViewportRect]);
 
   const findElementAtViewportPoint = useCallback((clientX, clientY) => {
     if (!api || !scene?.elements) return null;
@@ -142,9 +177,9 @@ function App() {
   }, [api, scene]);
 
   const handleCanvasClick = useCallback((event) => {
-    if (event.target?.closest?.("button, a, input, textarea, [role='button']")) return;
+    if (event.target?.closest?.("button, a, input, textarea, [role='button'], .copy-card")) return;
     const element = findElementAtViewportPoint(event.clientX, event.clientY);
-    copyElement(element);
+    copyElement(element, { x: event.clientX, y: event.clientY });
   }, [copyElement, findElementAtViewportPoint]);
 
   useEffect(() => {
@@ -190,9 +225,24 @@ function App() {
       </header>
 
       <main className="canvas-wrap" onClickCapture={handleCanvasClick}>
-        <div className="notice"><span className="pill">VIEW ONLY</span><span>Click any text or object to copy it. You can copy/share, but editing is disabled here.</span></div>
+        <div className="notice"><span className="pill">CLICK TO COPY</span><span>Tap any text, box, graph, or object — it flashes and shows what was copied.</span></div>
         {error ? <div className="error">{error}</div> : null}
         {!scene && !error ? <div className="loading">Loading board…</div> : null}
+        {copyFeedback?.rect ? <div className="copy-outline" style={{ left: copyFeedback.rect.left, top: copyFeedback.rect.top, width: copyFeedback.rect.width, height: copyFeedback.rect.height }} /> : null}
+        {copyFeedback ? (
+          <div className="copy-pop" style={{ left: copyFeedback.x, top: copyFeedback.y }}>
+            ✓ Copied
+          </div>
+        ) : null}
+        {copyFeedback ? (
+          <div className="copy-card">
+            <div>
+              <strong>{copyFeedback.label}</strong>
+              <span>{copyFeedback.preview}</span>
+            </div>
+            <button className="primary" onClick={() => copyText(copyFeedback.text, "Copied again")}>Copy again</button>
+          </div>
+        ) : null}
         {scene ? (
           <Excalidraw
             excalidrawAPI={(api) => { setApi(api); window.__excalidrawApi = api; }}
@@ -202,11 +252,6 @@ function App() {
             theme="light"
             gridModeEnabled={false}
             detectScroll={false}
-            onPointerUp={(_activeTool, pointerDownState) => {
-              if (!pointerDownState?.drag?.hasOccurred) {
-                copyElement(pointerDownState?.hit?.element);
-              }
-            }}
             UIOptions={{
               canvasActions: {
                 changeViewBackgroundColor: false,
