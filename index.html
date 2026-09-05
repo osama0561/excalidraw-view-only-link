@@ -95,7 +95,7 @@
       </div>
       <div class="actions">
         <button id="copy" class="primary">Copy view-only link</button>
-        <a id="source" class="button secondary" target="_blank" rel="noopener">Open source</a>
+        <button class="secondary" type="button" title="Source board is locked here" disabled>Editing locked</button>
       </div>
     </header>
     <main id="main">
@@ -111,10 +111,8 @@
     if (!location.hash) history.replaceState(null, '', location.pathname + DEFAULT_HASH);
     const sourceUrl = 'https://excalidraw.com/' + hash;
     const iframe = document.getElementById('board');
-    const source = document.getElementById('source');
     const room = document.getElementById('room');
     iframe.src = sourceUrl;
-    source.href = sourceUrl;
     room.textContent = 'Room: ' + hash.replace('#room=', '').split(',')[0];
     const toast = document.getElementById('toast');
     function showToast(text) { toast.textContent = text; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1800); }
