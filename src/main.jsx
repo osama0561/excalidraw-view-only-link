@@ -24,7 +24,15 @@ function App() {
         if (!res.ok) throw new Error(`Could not load scene (${res.status})`);
         return res.json();
       })
-      .then((data) => setScene(data))
+      .then((data) => setScene({
+        ...data,
+        appState: {
+          ...(data.appState || {}),
+          viewBackgroundColor: "#000000",
+          theme: "dark",
+          viewModeEnabled: true,
+        },
+      }))
       .catch((err) => setError(err.message));
   }, []);
 
@@ -113,6 +121,7 @@ function App() {
             initialData={scene}
             viewModeEnabled={true}
             zenModeEnabled={false}
+            theme="dark"
             gridModeEnabled={false}
             detectScroll={false}
             UIOptions={{
