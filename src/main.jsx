@@ -32,6 +32,7 @@ function App() {
           theme: "dark",
           viewModeEnabled: true,
         },
+        scrollToContent: true,
       }))
       .catch((err) => setError(err.message));
   }, []);
@@ -50,7 +51,12 @@ function App() {
       },
       files: scene.files,
     });
-    setTimeout(() => api.scrollToContent(scene.elements, { fitToContent: true, animate: false }), 150);
+    [150, 800, 1800].forEach((delay) => {
+      setTimeout(() => {
+        api.scrollToContent(scene.elements, { fitToContent: true, animate: false });
+        api.refresh?.();
+      }, delay);
+    });
   }, [api, scene]);
 
   const showToast = useCallback((message) => {
