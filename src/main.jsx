@@ -82,6 +82,78 @@ function App() {
     showToast(label);
   }, [showToast]);
 
+  const getCopyPayloadForElement = useCallback((element) => {
+    if (!element || !scene?.elements) return null;
+
+    if (element.type === "text") {
+      return {
+        text: element.text || element.originalText || "",
+        label: "Text copied",
+      };
+    }
+
+    const boundTextId = element.boundElements?.find((item) => item.type === "text")?.id;
+    const boundText = boundTextId ? scene.elements.find((item) => item.id === boundTextId) : null;
+    if (boundText?.text || boundText?.originalText) {
+      return {
+        text: boundText.text || boundText.originalText,
+        label: "Label copied",
+      };
+    }
+
+    if (element.type === "image") {
+      return {
+        text: `Image element: ${element.id}`,
+        label: "Image reference copied",
+      };
+    }
+
+    return {
+      text: JSON.stringify(element, null, 2),
+      label: `${element.type || "Element"} copied`,
+    };
+  }, [scene]);
+
+  const copyElement = useCallback((element) => {
+    const payload = getCopyPayloadForElement(element);
+    if (!payload?.text) return;
+    copyText(payload.text, payload.label);
+  }, [copyText, getCopyPayloadForElement]);
+
+  const findElementAtViewportPoint = useCallback((clientX, clientY) => {
+    if (!api || !scene?.elements) return null;
+    const appState = api.getAppState();
+    const canvasRect = document.querySelector(".canvas-wrap")?.getBoundingClientRect();
+    const zoom = appState?.zoom?.value || 1;
+    if (!canvasRect || !zoom) return null;
+
+    const sceneX = (clientX - canvasRect.left) / zoom - appState.scrollX;
+    const sceneY = (clientY - canvasRect.top) / zoom - appState.scrollY;
+    const hitPadding = Math.max(10 / zoom, 18);
+
+    return [...scene.elements].reverse().find((element) => {
+      if (!element || element.isDeleted) return false;
+      const minX = Math.min(element.x, element.x + (element.width || 0)) - hitPadding;
+      const maxX = Math.max(element.x, element.x + (element.width || 0)) + hitPadding;
+      const minY = Math.min(element.y, element.y + (element.height || 0)) - hitPadding;
+      const maxY = Math.max(element.y, element.y + (element.height || 0)) + hitPadding;
+      return sceneX >= minX && sceneX <= maxX && sceneY >= minY && sceneY <= maxY;
+    }) || null;
+  }, [api, scene]);
+
+  const handleCanvasClick = useCallback((event) => {
+    if (event.target?.closest?.("button, a, input, textarea, [role='button']")) return;
+    const element = findElementAtViewportPoint(event.clientX, event.clientY);
+    copyElement(element);
+  }, [copyElement, findElementAtViewportPoint]);
+
+  useEffect(() => {
+    window.__copyElementPayload = (id) => {
+      const element = scene?.elements?.find((item) => item.id === id);
+      return getCopyPayloadForElement(element);
+    };
+  }, [scene, getCopyPayloadForElement]);
+
   const viewOnlyUrl = useMemo(() => `${location.origin}${location.pathname}${location.hash || DEFAULT_HASH}`, []);
 
   const downloadScene = useCallback(() => {
@@ -117,8 +189,8 @@ function App() {
         </div>
       </header>
 
-      <main className="canvas-wrap">
-        <div className="notice"><span className="pill">VIEW ONLY</span><span>This board includes the new repo file. You can copy/share it, but editing is disabled here.</span></div>
+      <main className="canvas-wrap" onClickCapture={handleCanvasClick}>
+        <div className="notice"><span className="pill">VIEW ONLY</span><span>Click any text or object to copy it. You can copy/share, but editing is disabled here.</span></div>
         {error ? <div className="error">{error}</div> : null}
         {!scene && !error ? <div className="loading">Loading board…</div> : null}
         {scene ? (
@@ -130,6 +202,11 @@ function App() {
             theme="light"
             gridModeEnabled={false}
             detectScroll={false}
+            onPointerUp={(_activeTool, pointerDownState) => {
+              if (!pointerDownState?.drag?.hasOccurred) {
+                copyElement(pointerDownState?.hit?.element);
+              }
+            }}
             UIOptions={{
               canvasActions: {
                 changeViewBackgroundColor: false,
