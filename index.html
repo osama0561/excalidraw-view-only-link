@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Excalidraw View Only</title>
+  <meta name="description" content="View-only Excalidraw room wrapper. Copy the view link without editing the board." />
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --panel: #ffffff;
+      --line: #e9ecef;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #6965db;
+      --accent-dark: #5753d0;
+      --shadow: 0 10px 30px rgba(17, 24, 39, .10);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; overflow: hidden; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .app { height: 100vh; display: grid; grid-template-rows: 58px 1fr 34px; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 10px 14px; background: rgba(255,255,255,.92); border-bottom: 1px solid var(--line);
+      box-shadow: 0 1px 8px rgba(0,0,0,.04); backdrop-filter: blur(8px); z-index: 5;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 220px; }
+    .mark {
+      width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+      color: white; background: var(--accent); font-weight: 800; font-size: 21px;
+      box-shadow: inset 0 -3px 0 rgba(0,0,0,.13);
+    }
+    .brand strong { display: block; font-size: 14px; line-height: 1.1; }
+    .brand span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .tools { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: center; }
+    .tool {
+      width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: #fff;
+      display: grid; place-items: center; color: #4b5563; font-size: 17px; box-shadow: 0 1px 2px rgba(0,0,0,.03);
+    }
+    .tool.active { outline: 2px solid #dedcff; color: var(--accent); background: #f1f0ff; }
+    .actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 280px; }
+    button, a.button {
+      appearance: none; border: 1px solid var(--line); background: #fff; color: var(--text);
+      border-radius: 10px; padding: 10px 12px; font-weight: 650; font-size: 13px; cursor: pointer;
+      text-decoration: none; line-height: 1; white-space: nowrap;
+    }
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-dark); }
+    main { position: relative; overflow: hidden; background-color: #fff; background-image: radial-gradient(#e5e7eb 1px, transparent 1px); background-size: 24px 24px; }
+    .frame-wrap { position: absolute; inset: 0; }
+    iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; pointer-events: none; }
+    .readonly-shield {
+      position: absolute; inset: 0; z-index: 2; pointer-events: auto; cursor: not-allowed;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
+    }
+    .notice {
+      position: absolute; left: 50%; top: 18px; transform: translateX(-50%); z-index: 3;
+      display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.95); border: 1px solid var(--line);
+      box-shadow: var(--shadow); border-radius: 14px; padding: 10px 14px; font-size: 13px;
+      max-width: min(760px, calc(100vw - 32px)); text-align: center;
+    }
+    .pill { color: var(--accent); background: #f1f0ff; border: 1px solid #dedcff; padding: 5px 8px; border-radius: 999px; font-weight: 800; }
+    .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 0 12px; font-size: 12px; color: var(--muted); background: #fff; border-top: 1px solid var(--line); }
+    .toast { position: fixed; right: 18px; bottom: 48px; z-index: 10; background: #111827; color: white; border-radius: 12px; padding: 11px 14px; box-shadow: var(--shadow); opacity: 0; transform: translateY(10px); transition: .18s ease; font-size: 13px; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .empty {
+      height: 100%; display: grid; place-items: center; padding: 24px; text-align: center;
+    }
+    .empty-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); max-width: 540px; padding: 28px; }
+    .empty-card h1 { margin: 0 0 8px; font-size: 26px; }
+    .empty-card p { color: var(--muted); line-height: 1.6; }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 6px; }
+    @media (max-width: 860px) {
+      .tools { display: none; }
+      .actions { min-width: auto; }
+      .brand { min-width: auto; }
+      .secondary { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">✦</div>
+        <div><strong>Excalidraw</strong><span>view-only board</span></div>
+      </div>
+      <div class="tools" aria-hidden="true">
+        <div class="tool">↖</div><div class="tool active">▭</div><div class="tool">◇</div><div class="tool">○</div><div class="tool">→</div><div class="tool">A</div><div class="tool">✎</div><div class="tool">🖐</div>
+      </div>
+      <div class="actions">
+        <button id="copy" class="primary">Copy view-only link</button>
+        <a id="source" class="button secondary" target="_blank" rel="noopener">Open source</a>
+      </div>
+    </header>
+    <main id="main">
+      <div class="notice"><span class="pill">VIEW ONLY</span><span>You can view and copy this custom link. Editing is blocked on this page.</span></div>
+      <div class="frame-wrap"><iframe id="board" title="View-only Excalidraw board" referrerpolicy="no-referrer"></iframe><div class="readonly-shield" title="Editing is disabled. Use Copy view-only link."></div></div>
+    </main>
+    <footer class="statusbar"><span id="room">Room: loading…</span><span>Editing disabled • Share/copy allowed</span></footer>
+  </div>
+  <div id="toast" class="toast">Copied</div>
+  <script>
+    const DEFAULT_HASH = '#room=47732dff42e6388fe867,hcNTq-TdX-jtF6t33kxA2Q';
+    const hash = location.hash && location.hash.startsWith('#room=') ? location.hash : DEFAULT_HASH;
+    if (!location.hash) history.replaceState(null, '', location.pathname + DEFAULT_HASH);
+    const sourceUrl = 'https://excalidraw.com/' + hash;
+    const iframe = document.getElementById('board');
+    const source = document.getElementById('source');
+    const room = document.getElementById('room');
+    iframe.src = sourceUrl;
+    source.href = sourceUrl;
+    room.textContent = 'Room: ' + hash.replace('#room=', '').split(',')[0];
+    const toast = document.getElementById('toast');
+    function showToast(text) { toast.textContent = text; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1800); }
+    document.getElementById('copy').addEventListener('click', async () => {
+      const viewOnlyUrl = location.origin + location.pathname + hash;
+      try { await navigator.clipboard.writeText(viewOnlyUrl); showToast('View-only link copied'); }
+      catch (e) {
+        const input = document.createElement('input'); input.value = viewOnlyUrl; document.body.appendChild(input); input.select(); document.execCommand('copy'); input.remove(); showToast('View-only link copied');
+      }
+    });
+  </script>
+</body>
+</html>

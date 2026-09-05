@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "build": "node -e \"require('fs').mkdirSync('dist',{recursive:true}); require('fs').copyFileSync('index.html','dist/index.html')\""
+  },
+  "devDependencies": {}
+}
