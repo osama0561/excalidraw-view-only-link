@@ -34,6 +34,8 @@ function App() {
       elements: scene.elements,
       appState: {
         ...scene.appState,
+        viewBackgroundColor: "#000000",
+        theme: "dark",
         viewModeEnabled: true,
         zenModeEnabled: false,
         collaborators: [],
