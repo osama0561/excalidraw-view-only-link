@@ -29,7 +29,7 @@ function App() {
         appState: {
           ...(data.appState || {}),
           viewBackgroundColor: "#000000",
-          theme: "dark",
+          theme: "light",
           viewModeEnabled: true,
         },
         scrollToContent: true,
@@ -44,7 +44,7 @@ function App() {
       appState: {
         ...scene.appState,
         viewBackgroundColor: "#000000",
-        theme: "dark",
+        theme: "light",
         viewModeEnabled: true,
         zenModeEnabled: false,
         collaborators: [],
@@ -123,11 +123,11 @@ function App() {
         {!scene && !error ? <div className="loading">Loading board…</div> : null}
         {scene ? (
           <Excalidraw
-            excalidrawAPI={setApi}
+            excalidrawAPI={(api) => { setApi(api); window.__excalidrawApi = api; }}
             initialData={scene}
             viewModeEnabled={true}
             zenModeEnabled={false}
-            theme="dark"
+            theme="light"
             gridModeEnabled={false}
             detectScroll={false}
             UIOptions={{

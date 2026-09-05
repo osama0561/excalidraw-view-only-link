@@ -37,13 +37,15 @@ button.locked { color: var(--accent); background: #27233f; border-color: #dedcff
 @media (max-width: 1050px) { .tools { display: none; } .actions { min-width: auto; } .brand { min-width: auto; } }
 @media (max-width: 720px) { .actions button:not(.primary):not(.locked) { display: none; } .notice { top: 70px; } }
 
-/* Force the actual Excalidraw canvas area black, not just our wrapper UI. */
+/* Force the Excalidraw canvas area black without covering drawings. */
 .excalidraw,
-.excalidraw .excalidraw__canvas,
 .excalidraw .excalidraw__canvas-wrapper,
 .excalidraw .App,
-.excalidraw .layer-ui__wrapper,
-.excalidraw canvas {
+.excalidraw canvas.excalidraw__canvas.static {
   background: #000000 !important;
   background-color: #000000 !important;
+}
+.excalidraw canvas.excalidraw__canvas.interactive {
+  background: transparent !important;
+  background-color: transparent !important;
 }
